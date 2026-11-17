@@ -1,0 +1,418 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global safety net: default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Primitive Helpers ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isBootstrapAdmin() {
+      return isSignedIn() &&
+             request.auth.token.email_verified == true &&
+             request.auth.token.email == 'alhams20216@gmail.com';
+    }
+
+    function isStaffAdmin() {
+      return isBootstrapAdmin() ||
+             (isSignedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid)));
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidTimestamp(ts) {
+      return ts is timestamp && ts <= request.time;
+    }
+
+    // --- Entity Validation Helpers ---
+    function isValidUserProfile(data) {
+      return data.keys().hasAll(['userId', 'displayName', 'email', 'phone', 'role', 'department', 'preferredCurrency', 'createdAt', 'updatedAt']) &&
+             data.keys().hasOnly(['userId', 'displayName', 'email', 'phone', 'role', 'department', 'preferredCurrency', 'createdAt', 'updatedAt']) &&
+             data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+             data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 80 &&
+             data.email is string && data.email.size() >= 3 && data.email.size() <= 120 &&
+             data.phone is string && data.phone.size() <= 30 &&
+             data.role in ['CUSTOMER', 'SUPER_ADMIN', 'ADMIN', 'MANAGER', 'ACCOUNTANT', 'VISA_OFFICER', 'SALES_EXECUTIVE', 'OPERATIONS_STAFF'] &&
+             data.department is string && data.department.size() <= 60 &&
+             data.preferredCurrency in ['BDT', 'SAR'] &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidTravelPackage(data) {
+      return data.keys().hasAll(['title', 'subtitle', 'serviceType', 'tier', 'flightType', 'priceBdt', 'priceSar', 'durationDays', 'makkahNights', 'madinahNights', 'makkahHotelDistance', 'madinahHotelDistance', 'hotelRating', 'inclusions', 'active', 'season', 'createdAt', 'updatedAt']) &&
+             data.keys().hasOnly(['title', 'subtitle', 'serviceType', 'tier', 'flightType', 'priceBdt', 'priceSar', 'durationDays', 'makkahNights', 'madinahNights', 'makkahHotelDistance', 'madinahHotelDistance', 'hotelRating', 'inclusions', 'active', 'season', 'createdAt', 'updatedAt']) &&
+             data.title is string && data.title.size() >= 2 && data.title.size() <= 120 &&
+             data.subtitle is string && data.subtitle.size() <= 160 &&
+             data.serviceType in ['UMRAH', 'HAJJ'] &&
+             data.tier in ['TRANSIT_ECONOMY', 'DIRECT_ECONOMY', 'STANDARD', 'PREMIUM', 'VIP', 'CUSTOM_FAMILY'] &&
+             data.flightType in ['TRANSIT', 'DIRECT'] &&
+             data.priceBdt is int && data.priceBdt > 0 && data.priceBdt <= 50000000 &&
+             data.priceSar is int && data.priceSar > 0 && data.priceSar <= 2000000 &&
+             data.durationDays is int && data.durationDays >= 1 && data.durationDays <= 60 &&
+             data.makkahNights is int && data.makkahNights >= 0 && data.makkahNights <= 45 &&
+             data.madinahNights is int && data.madinahNights >= 0 && data.madinahNights <= 45 &&
+             data.makkahHotelDistance is string && data.makkahHotelDistance.size() >= 1 && data.makkahHotelDistance.size() <= 60 &&
+             data.madinahHotelDistance is string && data.madinahHotelDistance.size() >= 1 && data.madinahHotelDistance.size() <= 60 &&
+             data.hotelRating is string && data.hotelRating.size() >= 1 && data.hotelRating.size() <= 40 &&
+             data.inclusions is list && data.inclusions.size() <= 15 && (data.inclusions.size() == 0 || data.inclusions[0] is string) &&
+             data.active is bool &&
+             data.season is string && data.season.size() >= 2 && data.season.size() <= 40 &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidBooking(data) {
+      return data.keys().hasAll(['userId', 'bookingCode', 'customerName', 'customerPhone', 'packageId', 'packageTitle', 'bookingType', 'groupName', 'pilgrimCount', 'totalAmountBdt', 'paidAmountBdt', 'currency', 'status', 'travelBatchDate', 'flightInfo', 'hotelMakkah', 'hotelMadinah', 'transportInfo', 'moallemName', 'notes', 'createdAt', 'updatedAt']) &&
+             data.keys().hasOnly(['userId', 'bookingCode', 'customerName', 'customerPhone', 'packageId', 'packageTitle', 'bookingType', 'groupName', 'pilgrimCount', 'totalAmountBdt', 'paidAmountBdt', 'currency', 'status', 'travelBatchDate', 'flightInfo', 'hotelMakkah', 'hotelMadinah', 'transportInfo', 'moallemName', 'notes', 'createdAt', 'updatedAt']) &&
+             data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+             data.bookingCode is string && data.bookingCode.size() >= 3 && data.bookingCode.size() <= 40 &&
+             data.customerName is string && data.customerName.size() >= 2 && data.customerName.size() <= 100 &&
+             data.customerPhone is string && data.customerPhone.size() >= 3 && data.customerPhone.size() <= 30 &&
+             data.packageId is string && data.packageId.size() >= 1 && data.packageId.size() <= 128 &&
+             data.packageTitle is string && data.packageTitle.size() >= 2 && data.packageTitle.size() <= 120 &&
+             data.bookingType in ['INDIVIDUAL', 'GROUP', 'FAMILY'] &&
+             data.groupName is string && data.groupName.size() <= 80 &&
+             data.pilgrimCount is int && data.pilgrimCount >= 1 && data.pilgrimCount <= 100 &&
+             data.totalAmountBdt is int && data.totalAmountBdt >= 0 && data.totalAmountBdt <= 500000000 &&
+             data.paidAmountBdt is int && data.paidAmountBdt >= 0 && data.paidAmountBdt <= 500000000 &&
+             data.currency in ['BDT', 'SAR'] &&
+             data.status in ['INQUIRY', 'CONFIRMED', 'VISA_PROCESSING', 'TICKETED', 'DEPARTED', 'COMPLETED', 'CANCELLED'] &&
+             data.travelBatchDate is string && data.travelBatchDate.size() <= 40 &&
+             data.flightInfo is string && data.flightInfo.size() <= 160 &&
+             data.hotelMakkah is string && data.hotelMakkah.size() <= 160 &&
+             data.hotelMadinah is string && data.hotelMadinah.size() <= 160 &&
+             data.transportInfo is string && data.transportInfo.size() <= 160 &&
+             data.moallemName is string && data.moallemName.size() <= 100 &&
+             data.notes is string && data.notes.size() <= 500 &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidPilgrim(data) {
+      return data.keys().hasAll(['userId', 'bookingId', 'fullName', 'passportNumber', 'passportExpiry', 'dateOfBirth', 'gender', 'relation', 'nidNumber', 'documentStatus', 'visaStatus', 'passportPhotoUri', 'groupName', 'roomAllocation', 'createdAt', 'updatedAt']) &&
+             data.keys().hasOnly(['userId', 'bookingId', 'fullName', 'passportNumber', 'passportExpiry', 'dateOfBirth', 'gender', 'relation', 'nidNumber', 'documentStatus', 'visaStatus', 'passportPhotoUri', 'groupName', 'roomAllocation', 'createdAt', 'updatedAt']) &&
+             data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+             data.bookingId is string && data.bookingId.size() <= 128 &&
+             data.fullName is string && data.fullName.size() >= 2 && data.fullName.size() <= 100 &&
+             data.passportNumber is string && data.passportNumber.size() >= 4 && data.passportNumber.size() <= 30 &&
+             data.passportExpiry is string && data.passportExpiry.size() >= 4 && data.passportExpiry.size() <= 30 &&
+             data.dateOfBirth is string && data.dateOfBirth.size() <= 30 &&
+             data.gender in ['MALE', 'FEMALE'] &&
+             data.relation is string && data.relation.size() <= 40 &&
+             data.nidNumber is string && data.nidNumber.size() <= 40 &&
+             data.documentStatus in ['PENDING', 'UPLOADED', 'VERIFIED', 'REJECTED'] &&
+             data.visaStatus in ['NOT_STARTED', 'DOCS_READY', 'SUBMITTED', 'ISSUED', 'REJECTED'] &&
+             data.passportPhotoUri is string && data.passportPhotoUri.size() <= 300 &&
+             data.groupName is string && data.groupName.size() <= 80 &&
+             data.roomAllocation is string && data.roomAllocation.size() <= 80 &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidPaymentRecord(data) {
+      return data.keys().hasAll(['userId', 'bookingId', 'bookingCode', 'customerName', 'amountBdt', 'currency', 'method', 'referenceNo', 'paymentType', 'verificationStatus', 'receiptNumber', 'notes', 'createdAt', 'updatedAt']) &&
+             data.keys().hasOnly(['userId', 'bookingId', 'bookingCode', 'customerName', 'amountBdt', 'currency', 'method', 'referenceNo', 'paymentType', 'verificationStatus', 'receiptNumber', 'notes', 'createdAt', 'updatedAt']) &&
+             data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+             data.bookingId is string && data.bookingId.size() >= 1 && data.bookingId.size() <= 128 &&
+             data.bookingCode is string && data.bookingCode.size() <= 40 &&
+             data.customerName is string && data.customerName.size() >= 2 && data.customerName.size() <= 100 &&
+             data.amountBdt is int && data.amountBdt > 0 && data.amountBdt <= 500000000 &&
+             data.currency in ['BDT', 'SAR'] &&
+             data.method in ['CASH', 'BANK_TRANSFER', 'BKASH', 'NAGAD'] &&
+             data.referenceNo is string && data.referenceNo.size() <= 80 &&
+             data.paymentType in ['ADVANCE', 'INSTALLMENT', 'FINAL', 'REFUND'] &&
+             data.verificationStatus in ['PENDING', 'VERIFIED', 'REJECTED', 'REFUNDED'] &&
+             data.receiptNumber is string && data.receiptNumber.size() <= 40 &&
+             data.notes is string && data.notes.size() <= 300 &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidInquiryLead(data) {
+      return data.keys().hasAll(['userId', 'leadName', 'phone', 'packageInterest', 'pilgrimCount', 'source', 'leadStatus', 'followUpDate', 'notes', 'createdAt', 'updatedAt']) &&
+             data.keys().hasOnly(['userId', 'leadName', 'phone', 'packageInterest', 'pilgrimCount', 'source', 'leadStatus', 'followUpDate', 'notes', 'createdAt', 'updatedAt']) &&
+             data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+             data.leadName is string && data.leadName.size() >= 2 && data.leadName.size() <= 100 &&
+             data.phone is string && data.phone.size() >= 3 && data.phone.size() <= 30 &&
+             data.packageInterest is string && data.packageInterest.size() >= 1 && data.packageInterest.size() <= 120 &&
+             data.pilgrimCount is int && data.pilgrimCount >= 1 && data.pilgrimCount <= 100 &&
+             data.source in ['APP', 'WHATSAPP', 'PHONE', 'FACEBOOK', 'WALK_IN'] &&
+             data.leadStatus in ['NEW', 'FOLLOW_UP', 'QUOTED', 'CONVERTED', 'CLOSED'] &&
+             data.followUpDate is string && data.followUpDate.size() <= 30 &&
+             data.notes is string && data.notes.size() <= 500 &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidTourGroup(data) {
+      return data.keys().hasAll(['groupCode', 'name', 'packageTitle', 'departureDate', 'returnDate', 'airline', 'flightNumber', 'makkahHotel', 'madinahHotel', 'transportCoach', 'moallemName', 'capacity', 'assignedCount', 'groupStatus', 'createdAt', 'updatedAt']) &&
+             data.keys().hasOnly(['groupCode', 'name', 'packageTitle', 'departureDate', 'returnDate', 'airline', 'flightNumber', 'makkahHotel', 'madinahHotel', 'transportCoach', 'moallemName', 'capacity', 'assignedCount', 'groupStatus', 'createdAt', 'updatedAt']) &&
+             data.groupCode is string && data.groupCode.size() >= 2 && data.groupCode.size() <= 40 &&
+             data.name is string && data.name.size() >= 2 && data.name.size() <= 100 &&
+             data.packageTitle is string && data.packageTitle.size() >= 2 && data.packageTitle.size() <= 120 &&
+             data.departureDate is string && data.departureDate.size() <= 40 &&
+             data.returnDate is string && data.returnDate.size() <= 40 &&
+             data.airline is string && data.airline.size() <= 80 &&
+             data.flightNumber is string && data.flightNumber.size() <= 40 &&
+             data.makkahHotel is string && data.makkahHotel.size() <= 120 &&
+             data.madinahHotel is string && data.madinahHotel.size() <= 120 &&
+             data.transportCoach is string && data.transportCoach.size() <= 120 &&
+             data.moallemName is string && data.moallemName.size() <= 100 &&
+             data.capacity is int && data.capacity >= 1 && data.capacity <= 500 &&
+             data.assignedCount is int && data.assignedCount >= 0 && data.assignedCount <= 500 &&
+             data.groupStatus in ['PLANNING', 'READY', 'DEPARTED', 'COMPLETED'] &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidExpenseRecord(data) {
+      return data.keys().hasAll(['title', 'category', 'amountBdt', 'supplierName', 'paymentMethod', 'expenseDate', 'notes', 'createdAt', 'updatedAt']) &&
+             data.keys().hasOnly(['title', 'category', 'amountBdt', 'supplierName', 'paymentMethod', 'expenseDate', 'notes', 'createdAt', 'updatedAt']) &&
+             data.title is string && data.title.size() >= 2 && data.title.size() <= 120 &&
+             data.category in ['AIRLINE', 'HOTEL', 'VISA', 'TRANSPORT', 'MOALLEM', 'OFFICE', 'MARKETING'] &&
+             data.amountBdt is int && data.amountBdt > 0 && data.amountBdt <= 500000000 &&
+             data.supplierName is string && data.supplierName.size() <= 100 &&
+             data.paymentMethod in ['CASH', 'BANK_TRANSFER', 'BKASH', 'NAGAD'] &&
+             data.expenseDate is string && data.expenseDate.size() <= 30 &&
+             data.notes is string && data.notes.size() <= 300 &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidSupplierRecord(data) {
+      return data.keys().hasAll(['name', 'category', 'contactPerson', 'phone', 'city', 'payableBdt', 'paidBdt', 'active', 'createdAt', 'updatedAt']) &&
+             data.keys().hasOnly(['name', 'category', 'contactPerson', 'phone', 'city', 'payableBdt', 'paidBdt', 'active', 'createdAt', 'updatedAt']) &&
+             data.name is string && data.name.size() >= 2 && data.name.size() <= 120 &&
+             data.category in ['AIRLINE', 'HOTEL_MAKKAH', 'HOTEL_MADINAH', 'TRANSPORT', 'VISA_AGENT', 'CATERING'] &&
+             data.contactPerson is string && data.contactPerson.size() <= 80 &&
+             data.phone is string && data.phone.size() <= 30 &&
+             data.city is string && data.city.size() <= 60 &&
+             data.payableBdt is int && data.payableBdt >= 0 && data.payableBdt <= 500000000 &&
+             data.paidBdt is int && data.paidBdt >= 0 && data.paidBdt <= 500000000 &&
+             data.active is bool &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidStaffMember(data) {
+      return data.keys().hasAll(['fullName', 'email', 'phone', 'role', 'department', 'attendanceStatus', 'salaryBdt', 'leaveDaysRemaining', 'active', 'createdAt', 'updatedAt']) &&
+             data.keys().hasOnly(['fullName', 'email', 'phone', 'role', 'department', 'attendanceStatus', 'salaryBdt', 'leaveDaysRemaining', 'active', 'createdAt', 'updatedAt']) &&
+             data.fullName is string && data.fullName.size() >= 2 && data.fullName.size() <= 100 &&
+             data.email is string && data.email.size() >= 3 && data.email.size() <= 120 &&
+             data.phone is string && data.phone.size() <= 30 &&
+             data.role in ['SUPER_ADMIN', 'ADMIN', 'MANAGER', 'ACCOUNTANT', 'VISA_OFFICER', 'SALES_EXECUTIVE', 'OPERATIONS_STAFF'] &&
+             data.department is string && data.department.size() <= 60 &&
+             data.attendanceStatus in ['PRESENT', 'ON_LEAVE', 'REMOTE', 'FIELD_DUTY'] &&
+             data.salaryBdt is int && data.salaryBdt >= 0 && data.salaryBdt <= 10000000 &&
+             data.leaveDaysRemaining is int && data.leaveDaysRemaining >= 0 && data.leaveDaysRemaining <= 60 &&
+             data.active is bool &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidAuditLog(data) {
+      return data.keys().hasAll(['actorEmail', 'actorRole', 'action', 'targetModule', 'details', 'createdAt']) &&
+             data.keys().hasOnly(['actorEmail', 'actorRole', 'action', 'targetModule', 'details', 'createdAt']) &&
+             data.actorEmail is string && data.actorEmail.size() >= 3 && data.actorEmail.size() <= 120 &&
+             data.actorRole is string && data.actorRole.size() >= 2 && data.actorRole.size() <= 40 &&
+             data.action is string && data.action.size() >= 2 && data.action.size() <= 80 &&
+             data.targetModule is string && data.targetModule.size() >= 2 && data.targetModule.size() <= 60 &&
+             data.details is string && data.details.size() <= 400 &&
+             isValidTimestamp(data.createdAt);
+    }
+
+    function isValidAgencySettings(data) {
+      return data.keys().hasAll(['agencyName', 'agentNumber', 'licenseNumber', 'sarToBdtRate', 'minPassportMonths', 'bkashMerchant', 'nagadMerchant', 'bankAccountSummary', 'updatedAt']) &&
+             data.keys().hasOnly(['agencyName', 'agentNumber', 'licenseNumber', 'sarToBdtRate', 'minPassportMonths', 'bkashMerchant', 'nagadMerchant', 'bankAccountSummary', 'updatedAt']) &&
+             data.agencyName is string && data.agencyName.size() >= 2 && data.agencyName.size() <= 120 &&
+             data.agentNumber is string && data.agentNumber.size() <= 40 &&
+             data.licenseNumber is string && data.licenseNumber.size() <= 40 &&
+             (data.sarToBdtRate is number) && data.sarToBdtRate > 0 && data.sarToBdtRate <= 500 &&
+             data.minPassportMonths is int && data.minPassportMonths >= 1 && data.minPassportMonths <= 24 &&
+             data.bkashMerchant is string && data.bkashMerchant.size() <= 40 &&
+             data.nagadMerchant is string && data.nagadMerchant.size() <= 40 &&
+             data.bankAccountSummary is string && data.bankAccountSummary.size() <= 200 &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    // --- Collection Rules ---
+
+    match /admins/{adminUid} {
+      allow get: if isSignedIn() && (isOwner(adminUid) || isBootstrapAdmin());
+      allow list, create, update, delete: if isBootstrapAdmin();
+    }
+
+    match /users/{userId} {
+      allow get: if isSignedIn() && isValidId(userId) && (isOwner(userId) || isStaffAdmin());
+      allow list: if isBootstrapAdmin();
+      allow create: if isSignedIn() && isValidId(userId) && isOwner(userId) &&
+                       incoming().userId == request.auth.uid &&
+                       isValidUserProfile(incoming()) &&
+                       (incoming().role == 'CUSTOMER' || isBootstrapAdmin());
+      allow update: if isSignedIn() && isValidId(userId) &&
+                       isValidUserProfile(incoming()) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       (
+                         isStaffAdmin() ||
+                         (isOwner(userId) && incoming().role == existing().role &&
+                          incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'phone', 'preferredCurrency', 'updatedAt']))
+                       );
+      allow delete: if isBootstrapAdmin();
+    }
+
+    match /packages/{packageId} {
+      allow get: if isSignedIn() && isValidId(packageId);
+      allow list: if isSignedIn();
+      allow create: if isStaffAdmin() && isValidId(packageId) && isValidTravelPackage(incoming());
+      allow update: if isStaffAdmin() && isValidId(packageId) &&
+                       isValidTravelPackage(incoming()) &&
+                       incoming().createdAt == existing().createdAt;
+      allow delete: if isStaffAdmin() && isValidId(packageId);
+    }
+
+    match /bookings/{bookingId} {
+      allow get: if isSignedIn() && isValidId(bookingId) && (isStaffAdmin() || existing().userId == request.auth.uid);
+      allow list: if isSignedIn() && (isBootstrapAdmin() || resource.data.userId == request.auth.uid);
+      allow create: if isSignedIn() && isValidId(bookingId) && isValidBooking(incoming()) &&
+                       (
+                         isStaffAdmin() ||
+                         (incoming().userId == request.auth.uid &&
+                          incoming().paidAmountBdt == 0 &&
+                          incoming().status in ['INQUIRY', 'CONFIRMED'])
+                       );
+      allow update: if isSignedIn() && isValidId(bookingId) && isValidBooking(incoming()) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       (
+                         isStaffAdmin() ||
+                         (existing().userId == request.auth.uid &&
+                          !(existing().status in ['COMPLETED', 'CANCELLED']) &&
+                          incoming().diff(existing()).affectedKeys().hasOnly(['customerPhone', 'notes', 'pilgrimCount', 'updatedAt']))
+                       );
+      allow delete: if isStaffAdmin() && isValidId(bookingId);
+    }
+
+    match /pilgrims/{pilgrimId} {
+      allow get: if isSignedIn() && isValidId(pilgrimId) && (isStaffAdmin() || existing().userId == request.auth.uid);
+      allow list: if isSignedIn() && (isBootstrapAdmin() || resource.data.userId == request.auth.uid);
+      allow create: if isSignedIn() && isValidId(pilgrimId) && isValidPilgrim(incoming()) &&
+                       (
+                         isStaffAdmin() ||
+                         (incoming().userId == request.auth.uid &&
+                          incoming().documentStatus in ['PENDING', 'UPLOADED'] &&
+                          incoming().visaStatus == 'NOT_STARTED')
+                       );
+      allow update: if isSignedIn() && isValidId(pilgrimId) && isValidPilgrim(incoming()) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       (
+                         isStaffAdmin() ||
+                         (existing().userId == request.auth.uid &&
+                          incoming().diff(existing()).affectedKeys().hasOnly(['fullName', 'passportNumber', 'passportExpiry', 'dateOfBirth', 'gender', 'relation', 'nidNumber', 'passportPhotoUri', 'documentStatus', 'updatedAt']) &&
+                          incoming().documentStatus in ['PENDING', 'UPLOADED'])
+                       );
+      allow delete: if isSignedIn() && isValidId(pilgrimId) && (isStaffAdmin() || existing().userId == request.auth.uid);
+    }
+
+    match /payments/{paymentId} {
+      allow get: if isSignedIn() && isValidId(paymentId) && (isStaffAdmin() || existing().userId == request.auth.uid);
+      allow list: if isSignedIn() && (isBootstrapAdmin() || resource.data.userId == request.auth.uid);
+      allow create: if isSignedIn() && isValidId(paymentId) && isValidPaymentRecord(incoming()) &&
+                       (
+                         isStaffAdmin() ||
+                         (incoming().userId == request.auth.uid &&
+                          incoming().verificationStatus == 'PENDING' &&
+                          incoming().paymentType != 'REFUND')
+                       );
+      allow update: if isStaffAdmin() && isValidId(paymentId) && isValidPaymentRecord(incoming()) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt;
+      allow delete: if isStaffAdmin() && isValidId(paymentId);
+    }
+
+    match /inquiries/{inquiryId} {
+      allow get: if isSignedIn() && isValidId(inquiryId) && (isStaffAdmin() || existing().userId == request.auth.uid);
+      allow list: if isSignedIn() && (isBootstrapAdmin() || resource.data.userId == request.auth.uid);
+      allow create: if isSignedIn() && isValidId(inquiryId) && isValidInquiryLead(incoming()) &&
+                       (
+                         isStaffAdmin() ||
+                         (incoming().userId == request.auth.uid && incoming().leadStatus == 'NEW')
+                       );
+      allow update: if isStaffAdmin() && isValidId(inquiryId) && isValidInquiryLead(incoming()) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt;
+      allow delete: if isStaffAdmin() && isValidId(inquiryId);
+    }
+
+    match /groups/{groupId} {
+      allow get: if isStaffAdmin() && isValidId(groupId);
+      allow list: if isBootstrapAdmin();
+      allow create: if isStaffAdmin() && isValidId(groupId) && isValidTourGroup(incoming());
+      allow update: if isStaffAdmin() && isValidId(groupId) && isValidTourGroup(incoming()) &&
+                       incoming().createdAt == existing().createdAt;
+      allow delete: if isStaffAdmin() && isValidId(groupId);
+    }
+
+    match /expenses/{expenseId} {
+      allow get: if isStaffAdmin() && isValidId(expenseId);
+      allow list: if isBootstrapAdmin();
+      allow create: if isStaffAdmin() && isValidId(expenseId) && isValidExpenseRecord(incoming());
+      allow update: if isStaffAdmin() && isValidId(expenseId) && isValidExpenseRecord(incoming()) &&
+                       incoming().createdAt == existing().createdAt;
+      allow delete: if isStaffAdmin() && isValidId(expenseId);
+    }
+
+    match /suppliers/{supplierId} {
+      allow get: if isStaffAdmin() && isValidId(supplierId);
+      allow list: if isBootstrapAdmin();
+      allow create: if isStaffAdmin() && isValidId(supplierId) && isValidSupplierRecord(incoming());
+      allow update: if isStaffAdmin() && isValidId(supplierId) && isValidSupplierRecord(incoming()) &&
+                       incoming().createdAt == existing().createdAt;
+      allow delete: if isStaffAdmin() && isValidId(supplierId);
+    }
+
+    match /staff_members/{staffId} {
+      allow get: if isStaffAdmin() && isValidId(staffId);
+      allow list: if isBootstrapAdmin();
+      allow create: if isStaffAdmin() && isValidId(staffId) && isValidStaffMember(incoming());
+      allow update: if isStaffAdmin() && isValidId(staffId) && isValidStaffMember(incoming()) &&
+                       incoming().createdAt == existing().createdAt;
+      allow delete: if isStaffAdmin() && isValidId(staffId);
+    }
+
+    match /audit_logs/{logId} {
+      allow get: if isStaffAdmin() && isValidId(logId);
+      allow list: if isBootstrapAdmin();
+      allow create: if isStaffAdmin() && isValidId(logId) && isValidAuditLog(incoming());
+      allow update, delete: if false;
+    }
+
+    match /agency_settings/{settingId} {
+      allow get: if isSignedIn() && isValidId(settingId);
+      allow list: if isSignedIn();
+      allow create, update: if isStaffAdmin() && isValidId(settingId) && isValidAgencySettings(incoming());
+      allow delete: if false;
+    }
+  }
+}

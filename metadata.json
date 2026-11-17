@@ -1,0 +1,6 @@
+{
+  "name": "Rober Path",
+  "description": "Rober Path Hajj and Umrah agency management dashboard and customer portal for Bangladesh.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,301 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Authenticated user account and RBAC role assignment.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Firebase Auth UID" },
+        "displayName": { "type": "string" },
+        "email": { "type": "string" },
+        "phone": { "type": "string" },
+        "role": { "type": "string", "enum": ["CUSTOMER", "SUPER_ADMIN", "ADMIN", "MANAGER", "ACCOUNTANT", "VISA_OFFICER", "SALES_EXECUTIVE", "OPERATIONS_STAFF"] },
+        "department": { "type": "string" },
+        "preferredCurrency": { "type": "string", "enum": ["BDT", "SAR"] },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Server timestamp" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Server timestamp" }
+      },
+      "required": ["userId", "displayName", "email", "phone", "role", "department", "preferredCurrency", "createdAt", "updatedAt"]
+    },
+    "TravelPackage": {
+      "title": "TravelPackage",
+      "description": "Umrah or Hajj package offering with BDT/SAR pricing and hotel proximity.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "subtitle": { "type": "string" },
+        "serviceType": { "type": "string", "enum": ["UMRAH", "HAJJ"] },
+        "tier": { "type": "string", "enum": ["TRANSIT_ECONOMY", "DIRECT_ECONOMY", "STANDARD", "PREMIUM", "VIP", "CUSTOM_FAMILY"] },
+        "flightType": { "type": "string", "enum": ["TRANSIT", "DIRECT"] },
+        "priceBdt": { "type": "integer" },
+        "priceSar": { "type": "integer" },
+        "durationDays": { "type": "integer" },
+        "makkahNights": { "type": "integer" },
+        "madinahNights": { "type": "integer" },
+        "makkahHotelDistance": { "type": "string" },
+        "madinahHotelDistance": { "type": "string" },
+        "hotelRating": { "type": "string" },
+        "inclusions": { "type": "array" },
+        "active": { "type": "boolean" },
+        "season": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "subtitle", "serviceType", "tier", "flightType", "priceBdt", "priceSar", "durationDays", "makkahNights", "madinahNights", "makkahHotelDistance", "madinahHotelDistance", "hotelRating", "inclusions", "active", "season", "createdAt", "updatedAt"]
+    },
+    "Booking": {
+      "title": "Booking",
+      "description": "Individual, family, or group Umrah/Hajj reservation.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "bookingCode": { "type": "string" },
+        "customerName": { "type": "string" },
+        "customerPhone": { "type": "string" },
+        "packageId": { "type": "string" },
+        "packageTitle": { "type": "string" },
+        "bookingType": { "type": "string", "enum": ["INDIVIDUAL", "GROUP", "FAMILY"] },
+        "groupName": { "type": "string" },
+        "pilgrimCount": { "type": "integer" },
+        "totalAmountBdt": { "type": "integer" },
+        "paidAmountBdt": { "type": "integer" },
+        "currency": { "type": "string", "enum": ["BDT", "SAR"] },
+        "status": { "type": "string", "enum": ["INQUIRY", "CONFIRMED", "VISA_PROCESSING", "TICKETED", "DEPARTED", "COMPLETED", "CANCELLED"] },
+        "travelBatchDate": { "type": "string" },
+        "flightInfo": { "type": "string" },
+        "hotelMakkah": { "type": "string" },
+        "hotelMadinah": { "type": "string" },
+        "transportInfo": { "type": "string" },
+        "moallemName": { "type": "string" },
+        "notes": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "bookingCode", "customerName", "customerPhone", "packageId", "packageTitle", "bookingType", "groupName", "pilgrimCount", "totalAmountBdt", "paidAmountBdt", "currency", "status", "travelBatchDate", "flightInfo", "hotelMakkah", "hotelMadinah", "transportInfo", "moallemName", "notes", "createdAt", "updatedAt"]
+    },
+    "Pilgrim": {
+      "title": "Pilgrim",
+      "description": "Individual passenger/pilgrim passport, document verification, and visa status.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "bookingId": { "type": "string" },
+        "fullName": { "type": "string" },
+        "passportNumber": { "type": "string" },
+        "passportExpiry": { "type": "string" },
+        "dateOfBirth": { "type": "string" },
+        "gender": { "type": "string", "enum": ["MALE", "FEMALE"] },
+        "relation": { "type": "string" },
+        "nidNumber": { "type": "string" },
+        "documentStatus": { "type": "string", "enum": ["PENDING", "UPLOADED", "VERIFIED", "REJECTED"] },
+        "visaStatus": { "type": "string", "enum": ["NOT_STARTED", "DOCS_READY", "SUBMITTED", "ISSUED", "REJECTED"] },
+        "passportPhotoUri": { "type": "string" },
+        "groupName": { "type": "string" },
+        "roomAllocation": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "bookingId", "fullName", "passportNumber", "passportExpiry", "dateOfBirth", "gender", "relation", "nidNumber", "documentStatus", "visaStatus", "passportPhotoUri", "groupName", "roomAllocation", "createdAt", "updatedAt"]
+    },
+    "PaymentRecord": {
+      "title": "PaymentRecord",
+      "description": "Customer payment installment or refund transaction in BDT/SAR.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "bookingId": { "type": "string" },
+        "bookingCode": { "type": "string" },
+        "customerName": { "type": "string" },
+        "amountBdt": { "type": "integer" },
+        "currency": { "type": "string", "enum": ["BDT", "SAR"] },
+        "method": { "type": "string", "enum": ["CASH", "BANK_TRANSFER", "BKASH", "NAGAD"] },
+        "referenceNo": { "type": "string" },
+        "paymentType": { "type": "string", "enum": ["ADVANCE", "INSTALLMENT", "FINAL", "REFUND"] },
+        "verificationStatus": { "type": "string", "enum": ["PENDING", "VERIFIED", "REJECTED", "REFUNDED"] },
+        "receiptNumber": { "type": "string" },
+        "notes": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "bookingId", "bookingCode", "customerName", "amountBdt", "currency", "method", "referenceNo", "paymentType", "verificationStatus", "receiptNumber", "notes", "createdAt", "updatedAt"]
+    },
+    "InquiryLead": {
+      "title": "InquiryLead",
+      "description": "Customer CRM lead and follow-up record.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "leadName": { "type": "string" },
+        "phone": { "type": "string" },
+        "packageInterest": { "type": "string" },
+        "pilgrimCount": { "type": "integer" },
+        "source": { "type": "string", "enum": ["APP", "WHATSAPP", "PHONE", "FACEBOOK", "WALK_IN"] },
+        "leadStatus": { "type": "string", "enum": ["NEW", "FOLLOW_UP", "QUOTED", "CONVERTED", "CLOSED"] },
+        "followUpDate": { "type": "string" },
+        "notes": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "leadName", "phone", "packageInterest", "pilgrimCount", "source", "leadStatus", "followUpDate", "notes", "createdAt", "updatedAt"]
+    },
+    "TourGroup": {
+      "title": "TourGroup",
+      "description": "Kafela / tour departure group with flights, hotels, transport, and Moallem.",
+      "type": "object",
+      "properties": {
+        "groupCode": { "type": "string" },
+        "name": { "type": "string" },
+        "packageTitle": { "type": "string" },
+        "departureDate": { "type": "string" },
+        "returnDate": { "type": "string" },
+        "airline": { "type": "string" },
+        "flightNumber": { "type": "string" },
+        "makkahHotel": { "type": "string" },
+        "madinahHotel": { "type": "string" },
+        "transportCoach": { "type": "string" },
+        "moallemName": { "type": "string" },
+        "capacity": { "type": "integer" },
+        "assignedCount": { "type": "integer" },
+        "groupStatus": { "type": "string", "enum": ["PLANNING", "READY", "DEPARTED", "COMPLETED"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["groupCode", "name", "packageTitle", "departureDate", "returnDate", "airline", "flightNumber", "makkahHotel", "madinahHotel", "transportCoach", "moallemName", "capacity", "assignedCount", "groupStatus", "createdAt", "updatedAt"]
+    },
+    "ExpenseRecord": {
+      "title": "ExpenseRecord",
+      "description": "Agency operational expense entry.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "category": { "type": "string", "enum": ["AIRLINE", "HOTEL", "VISA", "TRANSPORT", "MOALLEM", "OFFICE", "MARKETING"] },
+        "amountBdt": { "type": "integer" },
+        "supplierName": { "type": "string" },
+        "paymentMethod": { "type": "string", "enum": ["CASH", "BANK_TRANSFER", "BKASH", "NAGAD"] },
+        "expenseDate": { "type": "string" },
+        "notes": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "category", "amountBdt", "supplierName", "paymentMethod", "expenseDate", "notes", "createdAt", "updatedAt"]
+    },
+    "SupplierRecord": {
+      "title": "SupplierRecord",
+      "description": "Airline, hotel, visa agent, and transport vendor record.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "category": { "type": "string", "enum": ["AIRLINE", "HOTEL_MAKKAH", "HOTEL_MADINAH", "TRANSPORT", "VISA_AGENT", "CATERING"] },
+        "contactPerson": { "type": "string" },
+        "phone": { "type": "string" },
+        "city": { "type": "string" },
+        "payableBdt": { "type": "integer" },
+        "paidBdt": { "type": "integer" },
+        "active": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "category", "contactPerson", "phone", "city", "payableBdt", "paidBdt", "active", "createdAt", "updatedAt"]
+    },
+    "StaffMember": {
+      "title": "StaffMember",
+      "description": "Agency employee HR profile, role, attendance, and leave status.",
+      "type": "object",
+      "properties": {
+        "fullName": { "type": "string" },
+        "email": { "type": "string" },
+        "phone": { "type": "string" },
+        "role": { "type": "string", "enum": ["SUPER_ADMIN", "ADMIN", "MANAGER", "ACCOUNTANT", "VISA_OFFICER", "SALES_EXECUTIVE", "OPERATIONS_STAFF"] },
+        "department": { "type": "string" },
+        "attendanceStatus": { "type": "string", "enum": ["PRESENT", "ON_LEAVE", "REMOTE", "FIELD_DUTY"] },
+        "salaryBdt": { "type": "integer" },
+        "leaveDaysRemaining": { "type": "integer" },
+        "active": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["fullName", "email", "phone", "role", "department", "attendanceStatus", "salaryBdt", "leaveDaysRemaining", "active", "createdAt", "updatedAt"]
+    },
+    "AuditLog": {
+      "title": "AuditLog",
+      "description": "Immutable operational audit log for admin actions.",
+      "type": "object",
+      "properties": {
+        "actorEmail": { "type": "string" },
+        "actorRole": { "type": "string" },
+        "action": { "type": "string" },
+        "targetModule": { "type": "string" },
+        "details": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["actorEmail", "actorRole", "action", "targetModule", "details", "createdAt"]
+    },
+    "AgencySettings": {
+      "title": "AgencySettings",
+      "description": "Configurable agency rates, license metadata, and workflow thresholds.",
+      "type": "object",
+      "properties": {
+        "agencyName": { "type": "string" },
+        "agentNumber": { "type": "string" },
+        "licenseNumber": { "type": "string" },
+        "sarToBdtRate": { "type": "number" },
+        "minPassportMonths": { "type": "integer" },
+        "bkashMerchant": { "type": "string" },
+        "nagadMerchant": { "type": "string" },
+        "bankAccountSummary": { "type": "string" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["agencyName", "agentNumber", "licenseNumber", "sarToBdtRate", "minPassportMonths", "bkashMerchant", "nagadMerchant", "bankAccountSummary", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "User profiles and RBAC role mapping."
+    },
+    "/packages/{packageId}": {
+      "schema": { "$ref": "#/entities/TravelPackage" },
+      "description": "Umrah and Hajj package catalog."
+    },
+    "/bookings/{bookingId}": {
+      "schema": { "$ref": "#/entities/Booking" },
+      "description": "Customer and agency bookings."
+    },
+    "/pilgrims/{pilgrimId}": {
+      "schema": { "$ref": "#/entities/Pilgrim" },
+      "description": "Pilgrim passport, document, and visa records."
+    },
+    "/payments/{paymentId}": {
+      "schema": { "$ref": "#/entities/PaymentRecord" },
+      "description": "Payments, installments, and refunds."
+    },
+    "/inquiries/{inquiryId}": {
+      "schema": { "$ref": "#/entities/InquiryLead" },
+      "description": "CRM leads and customer inquiries."
+    },
+    "/groups/{groupId}": {
+      "schema": { "$ref": "#/entities/TourGroup" },
+      "description": "Tour Kafela departures, flights, hotels, and transport."
+    },
+    "/expenses/{expenseId}": {
+      "schema": { "$ref": "#/entities/ExpenseRecord" },
+      "description": "Agency expenses."
+    },
+    "/suppliers/{supplierId}": {
+      "schema": { "$ref": "#/entities/SupplierRecord" },
+      "description": "Suppliers and service providers."
+    },
+    "/staff_members/{staffId}": {
+      "schema": { "$ref": "#/entities/StaffMember" },
+      "description": "Agency staff HR, attendance, and role records."
+    },
+    "/audit_logs/{logId}": {
+      "schema": { "$ref": "#/entities/AuditLog" },
+      "description": "Immutable agency audit trail."
+    },
+    "/agency_settings/{settingId}": {
+      "schema": { "$ref": "#/entities/AgencySettings" },
+      "description": "Configurable agency rates and settings."
+    }
+  }
+}
